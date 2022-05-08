@@ -21,30 +21,28 @@
 
 #include <cwchar>
 #include <vector>
+#include <map>
+
+std::map<DWORD, const char*> threadMap;
 
 int iox_pthread_setname_np(pthread_t thread, const char* name)
 {
-    DWORD threadId = Win32Call(GetThreadId, static_cast<HANDLE>(thread)).value;
-
-    std::mbstate_t state = std::mbstate_t();
-    uint64_t length = std::mbsrtowcs(nullptr, &name, 0, &state) + 1U;
-    std::vector<wchar_t> wName(length);
-    std::mbsrtowcs(wName.data(), &name, length, &state);
-
-    return Win32Call(SetThreadDescription, static_cast<HANDLE>(thread), wName.data()).error;
+    DWORD threadId = GetThreadId(thread);
+    threadMap.emplace(threadId, name);
+    return 0;
 }
 
 int pthread_getname_np(pthread_t thread, char* name, size_t len)
 {
-    wchar_t* wName;
-    auto result = Win32Call(GetThreadDescription, static_cast<HANDLE>(thread), &wName).error;
-    if (result == 0)
+    DWORD threadId = GetThreadId(thread);
+    auto it = threadMap.find(threadId);
+    if (it != threadMap.end())
     {
-        wcstombs(name, wName, len);
-        LocalFree(wName);
+        strcpy_s(name, len, it->second);
+        return true;
     }
 
-    return result;
+    return false;
 }
 
 int pthread_mutexattr_destroy(pthread_mutexattr_t* attr)

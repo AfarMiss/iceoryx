@@ -18,7 +18,6 @@
 #include "iceoryx_hoofs/platform/windows.hpp"
 
 #include <chrono>
-#include <processthreadsapi.h>
 
 
 std::atomic<uint64_t> UniqueSystemId::sequenceCounter{0U};
